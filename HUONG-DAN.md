@@ -1,155 +1,97 @@
-# Ứng dụng web Kho ký gửi — Hướng dẫn cài đặt
+# Ứng dụng web Kho ký gửi — Hướng dẫn (Hostinger + GitHub)
 
-Ứng dụng chạy trên chính file Google Sheets của bạn (Google Apps Script), **miễn phí, không cần thuê máy chủ**.
-Có link web mở được trên điện thoại và máy tính, đăng nhập bằng tài khoản riêng, chia 3 quyền.
+Ứng dụng chạy trên **hosting PHP** (Hostinger). Dữ liệu lưu trong **1 file SQLite** trên hosting, không cần Google, không cần tạo database.
+Code nằm trên **GitHub**: mỗi lần đẩy code lên, Hostinger tự cập nhật.
+
+## Cấu trúc
 
 | File | Vai trò |
 |---|---|
-| `apps-script/Core.gs` | Lõi tính toán: tồn kho, kiểm tra xuất vượt tồn, mã phiếu, báo cáo, **phân quyền** |
-| `apps-script/Code.gs` | Đọc/ghi Google Sheets, đăng nhập, menu trong Sheets |
-| `apps-script/Index.html` | Giao diện web (điện thoại + máy tính) |
-| `index.html`, `.htaccess`, `manifest.webmanifest`, `icon.svg` | "Vỏ" để mở ứng dụng bằng **tên miền riêng** (Hostinger…), xem mục 6 |
+| `index.html` | Giao diện web (điện thoại + máy tính) |
+| `core.js` | Tính toán trên trình duyệt: tồn kho, báo cáo, phí, đọc file Excel cũ |
+| `api.php` | Cổng máy chủ: đăng nhập, phân quyền, ghi dữ liệu |
+| `lib/kho.php` | Nghiệp vụ + lưu trữ SQLite (bị chặn truy cập trực tiếp) |
+| `.htaccess` | Trang chủ, chặn mở thư mục `lib/`, file dữ liệu, tài liệu |
+| `manifest.webmanifest`, `icon.svg` | Icon khi "Thêm vào màn hình chính" trên điện thoại |
+
+**Dữ liệu nằm ở đâu?** File `kho-data/kho.sqlite`, nằm **ngoài** thư mục web (cạnh `public_html`), nên không ai tải được qua trình duyệt.
+Nếu hosting không cho ghi ra ngoài, app tự dùng `public_html/data/` (đã chặn truy cập).
 
 ## Phân quyền
 
 | | Quản trị (bạn) | Nhân viên | Đối tác (chỉ xem) |
 |---|:-:|:-:|:-:|
 | Xem tổng quan, tồn kho, lịch sử phiếu, báo cáo | ✅ | ✅ | ✅ |
-| Xem chi phí, công nợ, các đợt chốt | ✅ | ✅ | ✅ (mặc định bật, tắt được trong Cài đặt → Chung) |
+| Xem chi phí, công nợ, các đợt chốt | ✅ | ✅ | ✅ (tắt được trong Cài đặt → Chung) |
 | Tạo phiếu nhập / xuất / chuyển kho (+ chi phí kèm phiếu) | ✅ | ✅ | ❌ |
-| Sửa phiếu, xóa phiếu, kiểm kê | ✅ không để dấu vết | ❌ | ❌ |
-| Sửa/xóa chi phí, chốt sổ chi phí | ✅ không để dấu vết | ❌ | ❌ |
+| Sửa / xóa phiếu, kiểm kê | ✅ không để dấu vết | ❌ | ❌ |
+| Sửa / xóa chi phí, chốt sổ, ghi phí tháng | ✅ không để dấu vết | ❌ | ❌ |
+| Sản phẩm, danh mục, biểu phí, tài khoản, nhập/xuất dữ liệu | ✅ | ❌ | ❌ |
 | Bị ghi Nhật ký | không | ✅ đăng nhập, tạo phiếu, thêm chi phí, đổi mật khẩu | ✅ đăng nhập |
-| Sản phẩm, brand, kho, loại phí, đơn vị tính | ✅ | ❌ | ❌ |
-| Quản lý tài khoản | ✅ | ❌ | ❌ |
 
-Mật khẩu được mã hóa và lưu trong phần cài đặt riêng của script, **không nằm trong Sheet**.
-Nhân viên và đối tác **không cần quyền truy cập file Google Sheets**. Họ chỉ dùng link web.
+Quyền được kiểm tra **trên máy chủ** (`lib/kho.php`). Nhân viên hay đối tác có cố gọi thẳng vào API cũng bị chặn.
+Mật khẩu được mã hóa (bcrypt). Đăng nhập sai 5 lần thì khóa 10 phút.
 
-## Cài đặt (khoảng 10 phút, làm 1 lần)
+## Cài đặt lần đầu (khoảng 10 phút)
 
-### 1. Chuẩn bị file
-- Mở file Google Sheets nhập xuất hiện tại → **Tệp → Tạo bản sao** (làm trên bản sao, file gốc giữ nguyên).
-- Nếu muốn có cả lịch sử từ 11/2024: chạy chuyển dữ liệu trên file cũ trước, hoặc hỏi mình cách gộp 2 file.
+### 1. Đưa code lên Hostinger
+Repo GitHub đã nối với Hostinger (hPanel → **Websites → Git**). Mỗi lần đẩy code lên nhánh `main`, Hostinger tự cập nhật.
+Nếu chưa nối: hPanel → **Advanced → Git** → nhập `https://github.com/luhuybk/Huy-Quanlykho.git`, nhánh `main`, thư mục `public_html` → **Create**, rồi bật **Auto Deployment**.
 
-### 2. Dán code
-1. Trong bản sao: **Tiện ích mở rộng → Apps Script**.
-2. Xóa nội dung file `Mã.gs` có sẵn → dán toàn bộ **`apps-script/Code.gs`** vào → đổi tên file thành `Code`.
-3. Bấm **＋ → Tập lệnh** → đặt tên `Core` → dán toàn bộ **`apps-script/Core.gs`**.
-4. Bấm **＋ → HTML** → đặt tên đúng là `Index` → dán toàn bộ **`apps-script/Index.html`**.
-5. Bấm 💾 **Lưu**.
+Kiểm tra máy chủ: mở `https://<tên-miền>/api.php?health=1`, phải thấy `"ok":true` và `"sqlite":true`.
+Nếu `sqlite` là `false`: hPanel → **Advanced → PHP Configuration → PHP extensions** → bật `pdo_sqlite`.
 
-### 3. Chuyển dữ liệu cũ + tạo tài khoản quản trị
-1. Trên thanh công cụ chọn hàm **`chuyenDuLieuCu`** → **Chạy**.
-2. Google hỏi cấp quyền: **Xem lại quyền → chọn tài khoản → Nâng cao → Đi tới dự án (không an toàn) → Cho phép**. Đây là code của chính bạn nên an toàn.
-3. Quay lại tab Google Sheets. Sẽ có hộp thoại hỏi **tên đăng nhập + mật khẩu quản trị**, bạn nhập vào.
-4. Xong sẽ báo số dòng, số chi phí, số sản phẩm đã chuyển.
+### 2. Tạo tài khoản quản trị
+Mở tên miền → màn hình **Cài đặt lần đầu** → nhập tên đăng nhập, tên hiển thị, mật khẩu → vào hệ thống.
+Màn hình này chỉ xuất hiện khi chưa có tài khoản nào.
 
-> File mới, không có dữ liệu cũ: chạy hàm `caiDat` thay cho `chuyenDuLieuCu`.
+### 3. Nhập dữ liệu cũ từ Google Sheets
+1. Mở file Google Sheets cũ → **Tệp → Tải xuống → Microsoft Excel (.xlsx)**.
+2. Trong app: **Cài đặt → Dữ liệu → Nhập dữ liệu từ file Excel mẫu cũ** → chọn file.
+3. App đọc các sheet **Tổng / Nhập / Xuất / Phí Phát Sinh** và hiện bảng xem trước. Trong đó có dòng **Kiểm tra tồn**: số sản phẩm có tồn từng kho khớp với sheet Tổng.
+4. Bấm **Nhập**.
 
-### 4. Đưa lên web
-1. Trong Apps Script: **Triển khai → Tùy chọn triển khai mới**.
-2. Bấm ⚙️ cạnh "Chọn loại" → **Ứng dụng web**.
-3. Đặt như sau:
-   - **Thực thi dưới dạng: Tôi** (email của bạn)
-   - **Người có quyền truy cập: Bất kỳ ai**
-4. **Triển khai** → copy **URL ứng dụng web** (dạng `https://script.google.com/macros/s/…/exec`).
-5. Mở link trên điện thoại → đăng nhập bằng tài khoản quản trị vừa tạo.
-6. Mẹo: trên điện thoại, mở link bằng Safari/Chrome → **Thêm vào màn hình chính** để dùng như một app.
+**Có 2 file (2024–2025 và 2026), muốn giữ cả lịch sử:**
+1. Nhập file **cũ** trước, bật **Thay toàn bộ dữ liệu hiện có**.
+2. Nhập file **2026**, tắt "Thay toàn bộ", bật **Nối tiếp file trước**. Dòng "Nhập tồn khớp" của file 2026 được thay bằng một phiếu **cân tồn**, để tồn **từng kho** khớp đúng đầu kỳ 2026 (ví dụ việc gộp Kho 2 vào Kho 1).
 
-### 5. Tạo tài khoản cho nhân viên và đối tác
-Trong web: **Cài đặt → Tài khoản → ＋ Thêm**
-- Nhân viên: vai trò **Nhân viên**
-- Bên đối tác: vai trò **Đối tác (chỉ xem)**
+Nhập lại cùng một file 2 lần sẽ bị chặn vì trùng mã phiếu.
 
-Gửi cho họ link web + tên đăng nhập + mật khẩu. Họ có thể tự đổi mật khẩu trong Cài đặt.
+### 4. Tạo tài khoản nhân viên và đối tác
+**Cài đặt → Tài khoản → ＋ Thêm**, chọn vai trò **Nhân viên** hoặc **Đối tác (chỉ xem)**. Gửi họ tên miền, tên đăng nhập và mật khẩu.
+Trên điện thoại: mở tên miền → **Thêm vào màn hình chính** để dùng như app.
 
-### 6. Mở bằng tên miền riêng (Hostinger)
-Ứng dụng vẫn chạy trên Google (Sheets + Apps Script). Trang trên Hostinger chỉ là "vỏ" hiện app toàn màn hình dưới tên miền của bạn.
-
-1. Làm xong bước 4, copy **URL ứng dụng web** (dạng `https://script.google.com/macros/s/…/exec`).
-2. Mở file **`index.html`** ở thư mục gốc, tìm dòng:
-   ```
-   var APP_URL = '';
-   ```
-   dán link vào giữa hai dấu nháy, ví dụ `var APP_URL = 'https://script.google.com/macros/s/AKfy…/exec';`.
-   Sửa ngay trên GitHub (bấm ✏️) hoặc trong **Hostinger → Trình quản lý tệp**.
-3. Trên Hostinger, thư mục `public_html` chỉ cần **`index.html`, `.htaccess`, `manifest.webmanifest`, `icon.svg`**. Nếu deploy cả repo cũng được: `.htaccess` đã chặn không cho mở thư mục `apps-script/` và các file `.gs`, `.md` qua trình duyệt.
-4. Mở tên miền → thấy màn hình đăng nhập là xong. Trên điện thoại: **Thêm vào màn hình chính** để dùng như app.
-
-Lưu ý:
-- Khi cập nhật code, luôn dùng **Quản lý các bản triển khai → ✏️ → Phiên bản mới** để **giữ nguyên link**. Nếu tạo "Tùy chọn triển khai mới" thì link đổi và phải dán lại vào `index.html`.
-- Chưa dán link hoặc dán sai dạng, trang sẽ hiện hướng dẫn thay vì báo lỗi.
-
-### Đã cài bản trước, giờ cập nhật bản mới
-1. Dán đè 3 file `Code`, `Core`, `Index` bằng bản mới trong thư mục `apps-script/` → 💾 Lưu.
-2. Chạy hàm **`caiDat`** 1 lần để tạo thêm sheet và cột mới (Chốt Sổ, Nhật Ký, cột giá phí riêng, các dòng biểu phí trong Cài Đặt). Dữ liệu cũ giữ nguyên. Google sẽ hỏi thêm quyền **chạy tác vụ tự động** (dùng cho việc tự ghi phí hằng tháng), bấm Cho phép.
-3. **Triển khai → Quản lý các bản triển khai → ✏️ → Phiên bản: Phiên bản mới → Triển khai**. Link web giữ nguyên.
-
-### Khi sửa code về sau
-Dán code mới → **Triển khai → Quản lý các bản triển khai → ✏️ → Phiên bản: Phiên bản mới → Triển khai**. Link web giữ nguyên.
+### 5. Biểu phí (nếu dùng)
+**Cài đặt → Biểu phí**:
+- **Phí cố định hằng tháng**, ví dụ Tiền Rinh Hàng, Quỹ Dự Phòng.
+- **Phí lưu kho / nhập / xuất theo thùng**.
+- Bật **Tự động ghi phí hằng tháng**: ngày đầu tháng, lần đầu có người mở app, phí tháng trước tự được ghi vào Chi phí. **Không cần cài Cron Job.**
 
 ## Các chức năng chính
+- **Tổng quan**: tồn kho, nhập/xuất tháng, công nợ chi phí, cảnh báo tồn âm, biểu đồ xuất 14 ngày, hàng bán chạy, phiếu gần đây.
+- **Tạo phiếu** (nút ＋): Nhập, Xuất, Chuyển kho, Kiểm kê (chỉ quản trị). Số lượng nhập theo thùng (nút − / +) và số lẻ. Xuất vượt tồn bị chặn.
+- **Phiếu & lịch sử**: phiếu nhóm theo ngày, có **Tổng hợp ngày** (ngày đó xuất hàng gì), in phiếu có chỗ ký tên.
+- **Tồn kho** + **thẻ kho** từng sản phẩm. **Báo cáo** nhập – xuất – tồn theo kỳ.
+- **Chi phí & chốt sổ** (giống công nợ): xem công nợ hiện tại, các khoản chưa chốt, chốt sổ khi thanh toán. Trả thiếu hoặc dư thì phần chênh lệch tự chuyển sang kỳ sau. Có in bảng kê.
+- **Phí tháng**: tạm tính trong tháng, ghi vào công nợ khi hết tháng, in bảng phí cho đối tác.
+- **Nhật ký** (quản trị xem): thao tác của nhân viên và đối tác.
+- **Giao diện sáng / tối**: nút 🌙/☀️ trên đầu trang.
+- Mở lại app (chuyển tab, mở khóa điện thoại) thì dữ liệu tự làm mới.
 
-- **Tổng quan**: tồn kho, nhập/xuất tháng này, chi phí tháng, cảnh báo tồn âm, biểu đồ xuất 14 ngày, hàng bán chạy 30 ngày, phiếu gần đây.
-- **Tạo phiếu** (nút ＋): Nhập, Xuất, Chuyển kho, Kiểm kê (chỉ quản trị).
-  - Chọn hàng từ danh sách có ô tìm, lọc theo brand, hiện tồn từng mặt hàng.
-  - Số lượng = **thùng (nút − / +) + lẻ**. Hiện ngay "còn bao nhiêu sau phiếu". Xuất vượt tồn thì dòng tô đỏ và không cho lưu.
-  - Gõ người nhận có gợi ý các tên đã dùng trước đó.
-  - **Chi phí kèm phiếu**: ship, bốc xếp… được ghi vào sổ chi phí và gắn với mã phiếu.
-  - **Kiểm kê**: nhập số đếm thực tế, hệ thống tự ghi phiếu điều chỉnh phần chênh lệch.
-- **Phiếu & lịch sử**: phiếu nhóm theo ngày, lọc theo khoảng ngày / loại / kho, tìm theo mã, sản phẩm, người nhận.
-  - **Tổng hợp ngày**: ngày đó xuất những hàng gì, mỗi hàng bao nhiêu, gồm những phiếu nào. In được.
-  - Bấm vào phiếu để xem chi tiết, in phiếu xuất/nhập kho có chỗ ký tên. Quản trị thấy thêm nút **Sửa** và **Hủy**.
-- **Tồn kho**: theo brand, theo kho, ẩn hàng hết. Bấm một mặt hàng để xem **thẻ kho** (lịch sử + tồn sau mỗi lần).
-- **Báo cáo**: nhập – xuất – tồn theo kỳ (tháng này, tháng trước, năm, tùy chọn), lọc kho/brand, kèm chi phí trong kỳ. In để đối soát với đối tác.
-- **Chi phí & chốt sổ** (giống công nợ):
-  - Đầu trang là **Công nợ chi phí hiện tại** = tổng chi phí − tổng đã thanh toán.
-  - Tab **Chưa chốt**: các khoản đang chờ thanh toán. Có nút **In bảng kê** để gửi đối tác.
-  - Quản trị bấm **Chốt sổ** → chọn ngày chốt → hệ thống gom mọi khoản chưa chốt đến ngày đó → nhập số tiền đã thanh toán.
-  - Từ hôm sau chi phí bắt đầu tính lại. Trả thiếu thì phần thiếu tự cộng vào kỳ sau, trả dư thì tự trừ.
-  - Tab **Các đợt chốt**: lịch sử thanh toán, xem/in bảng kê từng đợt. Chốt nhầm thì bấm **Mở lại đợt chốt**.
-- **Phí cố định hằng tháng** (Cài đặt → Biểu phí → mục đầu tiên):
-  - Các khoản cố định mỗi tháng, ví dụ **Tiền Rinh Hàng 2.000.000đ** và **Quỹ Dự Phòng 2.000.000đ** như sổ cũ. Bấm "Dùng mẫu sổ cũ" để điền nhanh, sửa số tiền hoặc thêm khoản khác tùy ý.
-  - Mỗi tháng ghi 1 lần vào Chi phí (ngày cuối tháng, ghi chú "Tháng mm/yyyy"), cùng lúc với phí kho. Có thể dùng riêng phí cố định mà không cần bật phí kho.
-  - Ghi bằng nút ở Chi phí → **Phí tháng**, hoặc bật **Tự động ghi phí hằng tháng**.
-  - Ngày "Bắt đầu tính phí" cũng áp dụng cho phí cố định: tháng nào kết thúc trước ngày này thì không tính.
-- **Phí kho tự động** (Cài đặt → Biểu phí, chỉ quản trị):
-  - Đặt **phí lưu kho** (đ/thùng/tháng hoặc đ/thùng/ngày), **phí nhập** và **phí xuất** (đ/thùng), ngày bắt đầu tính, có làm tròn lên thùng chẵn hay không.
-  - Sản phẩm cồng kềnh (máy sấy…) đặt **giá riêng** trong Cài đặt → Sản phẩm, để trống thì theo giá chung.
-  - **Lưu kho** = tồn cuối mỗi ngày (thùng, cộng mọi kho) × đơn giá. Giá theo tháng được chia đều theo số ngày của tháng.
-  - **Nhập / xuất** = số thùng trên phiếu Nhập / Xuất × đơn giá. Chuyển kho, kiểm kê, tồn đầu không tính phí.
-  - Chi phí → tab **Phí tháng**: xem phí tạm tính tháng này và các tháng trước, chi tiết từng sản phẩm, in bảng tính phí cho đối tác.
-  - Hết tháng, bấm **Ghi phí vào chi phí & công nợ**, hoặc bật **Tự động ghi phí hằng tháng** để hệ thống tự ghi lúc 6h sáng ngày 1. Phí được ghi thành 3 khoản (lưu kho / nhập / xuất) với mã `PHI-yyyy-mm` và tự vào lần chốt sổ tiếp theo.
-  - Ghi lại cùng tháng thì thay số cũ. Tháng đã chốt sổ thì phải **Mở lại đợt chốt** trước mới ghi lại được.
-- **Nhật ký** (Cài đặt → Nhật ký, chỉ quản trị xem): ai làm gì, lúc nào, kèm chi tiết từng phiếu. Bấm vào để mở phiếu.
-- **Giao diện tối**: nút 🌙/☀️ trên thanh tiêu đề, hoặc Cài đặt → Tài khoản → Giao diện (Sáng / Tối / Theo máy). Mỗi máy nhớ lựa chọn riêng.
-- **Cài đặt**:
-  - Sản phẩm: tên, brand, số đơn vị/thùng, đơn vị tính (chai/cái/hộp…), đang bán / ngừng bán.
-  - Danh mục: kho, brand, loại chi phí, đơn vị tính.
-  - Tài khoản.
-  - Chung: tên hiển thị, cho phép xuất âm, đối tác có được xem chi phí hay không.
+## Sao lưu — QUAN TRỌNG
+Dữ liệu chỉ nằm trên hosting, nên hãy sao lưu định kỳ:
+- **Cài đặt → Dữ liệu → Tải bản sao lưu** (file `.json`), cất vào Google Drive hoặc máy tính, mỗi tuần hoặc mỗi tháng.
+- **Khôi phục từ file…**: đưa dữ liệu về đúng bản sao lưu đó. Toàn bộ dữ liệu hiện tại bị thay, tài khoản giữ nguyên.
+- **Tải file Excel**: gồm Tồn kho, Sổ kho, Chi phí, Chốt sổ, Sản phẩm. Dùng để xem, in, gửi đối tác.
+- Hostinger cũng có sao lưu tự động (hPanel → **Files → Backups**).
 
-## Dữ liệu nằm ở đâu (trong Google Sheets)
+## Cập nhật code về sau
+Sửa code → đẩy lên GitHub (nhánh `main`) → Hostinger tự cập nhật. Dữ liệu nằm ngoài thư mục code nên **không bị mất** khi cập nhật.
 
-| Sheet | Nội dung |
-|---|---|
-| Sản Phẩm | Danh mục hàng + giá phí riêng (cột H–J, trống = theo biểu phí chung) |
-| Sổ Kho | Mỗi dòng = 1 mặt hàng trong 1 phiếu. Ngày ghi ở **mọi dòng** |
-| Chi Phí | Các khoản chi, có cột mã phiếu liên quan và cột **Mã chốt** (trống = chưa chốt) |
-| Tồn Kho | Tự tạo lại sau mỗi phiếu, để xem nhanh trong Sheets (đừng sửa tay) |
-| Cài Đặt | Kho, brand, loại phí, đơn vị tính (A–D), tùy chọn + **biểu phí kho** (F–G), **phí cố định hằng tháng** (I–K) |
-| Chốt Sổ | Các đợt chốt chi phí: kỳ, số khoản, tổng, đã thanh toán |
-| Nhật Ký | Thao tác của nhân viên / đối tác |
-
-Các sheet cũ **Tổng / Nhập / Xuất / Phí Phát Sinh** được giữ nguyên. Kiểm tra xong bạn có thể ẩn đi.
-
-## Đã kiểm tra
-- Chuyển dữ liệu từ mẫu cũ (Tổng / Nhập / Xuất / Phí Phát Sinh): tồn từng kho của mọi sản phẩm và tổng chi phí khớp đúng với sheet cũ.
-- Phân quyền, chốt sổ công nợ, phí kho, phí cố định hằng tháng được kiểm thử tự động với số liệu tính tay.
-- Brand và đơn vị tính được đoán theo tên sản phẩm (ví dụ "ml" thành chai, máy sấy/lược thành cái). Vào **Cài đặt → Sản phẩm** để chỉnh lại cho đúng.
-
+## Quên mật khẩu quản trị
+- Còn tài khoản quản trị khác: vào **Cài đặt → Tài khoản** → đặt mật khẩu mới.
+- Mất hết quyền quản trị: hPanel → **File Manager** → mở thư mục `kho-data` → tải `kho.sqlite` về máy làm bản dự phòng. Sau đó nhờ người biết kỹ thuật (hoặc hỏi lại Claude) để đặt lại mật khẩu trong bảng `users`.
 
 ## Lưu ý về "không để dấu vết"
-- Trong **ứng dụng web**: quản trị sửa/xóa phiếu, sửa/xóa chi phí, chốt sổ đều **không** để lại dấu vết. Phiếu sửa vẫn giữ người tạo và giờ tạo ban đầu, phiếu xóa thì mất hẳn, nhật ký không ghi.
-- Riêng **Google Sheets** luôn tự lưu **Lịch sử phiên bản** của file (Tệp → Lịch sử phiên bản). Phần này chỉ người có quyền chỉnh sửa file xem được. Nhân viên và đối tác chỉ dùng link web, không có quyền mở file, nên họ không xem được.
+Quản trị sửa hoặc xóa phiếu, sửa chi phí, chốt sổ: **không** ghi nhật ký, phiếu sửa giữ nguyên người tạo và giờ tạo ban đầu, phiếu xóa mất hẳn.
+Bản sao lưu hosting của Hostinger (nếu bật) vẫn chứa dữ liệu ở thời điểm sao lưu. Phần này chỉ người quản lý tài khoản Hostinger xem được.

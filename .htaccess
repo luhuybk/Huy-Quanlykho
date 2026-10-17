@@ -1,8 +1,17 @@
-# Trang chủ là vỏ index.html (nhúng ứng dụng Google Apps Script)
+# Ứng dụng kho: trang chủ index.html, máy chủ api.php
 DirectoryIndex index.html
 Options -Indexes
 
-# Không cho xem mã nguồn Apps Script, tài liệu và file ẩn qua trình duyệt
-RedirectMatch 404 ^/apps-script(/.*)?$
-RedirectMatch 404 \.(gs|md|MD)$
+# Không cho mở trực tiếp thư viện PHP, dữ liệu, tài liệu và file ẩn qua trình duyệt
+RedirectMatch 404 ^/(lib|data)(/.*)?$
+RedirectMatch 404 \.(md|MD|sqlite|sqlite-wal|sqlite-shm|json)$
 RedirectMatch 404 /\.(git|gitignore|htaccess)
+
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set Referrer-Policy "same-origin"
+  # Luôn lấy bản mới sau mỗi lần cập nhật code
+  <FilesMatch "^(index\.html|core\.js)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>

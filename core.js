@@ -1,6 +1,6 @@
 /**
- * LÕI XỬ LÝ — dùng chung cho máy chủ (Apps Script) và giao diện web.
- * Không gọi tới Google ở đây: mọi đọc/ghi dữ liệu đi qua đối tượng `store`.
+ * LÕI XỬ LÝ — chạy trên trình duyệt (tính tồn, báo cáo, phí, kiểm tra phiếu, đọc Excel cũ).
+ * Máy chủ PHP (lib/kho.php) có cùng nghiệp vụ và là nơi quyết định cuối cùng khi ghi dữ liệu.
  */
 function coreFactory_() {
 
