@@ -72,6 +72,7 @@ Trên điện thoại: mở tên miền → **Thêm vào màn hình chính** đ�
 - **Tạo phiếu** (nút ＋): Nhập, Xuất, Chuyển kho, Kiểm kê (chỉ quản trị). Số lượng nhập theo thùng (nút − / +) và số lẻ. Xuất vượt tồn bị chặn.
 - **Phiếu & lịch sử**: phiếu nhóm theo ngày, có **Tổng hợp ngày** (ngày đó xuất hàng gì), in phiếu có chỗ ký tên.
 - **Tồn kho** + **thẻ kho** từng sản phẩm. **Báo cáo** nhập – xuất – tồn theo kỳ.
+- **Sửa danh mục**: Cài đặt → Sản phẩm, bấm vào sản phẩm để đổi tên, brand, quy cách thùng (hoặc bấm **Sửa** trong thẻ kho). Cài đặt → Danh mục, bấm vào tên kho / brand / đơn vị / loại chi phí để **đổi tên**, phiếu và chi phí cũ đổi theo. Đổi brand sang tên đã có là gộp 2 brand.
 - **Chi phí & chốt sổ** (giống công nợ): xem công nợ hiện tại, các khoản chưa chốt, chốt sổ khi thanh toán. Trả thiếu hoặc dư thì phần chênh lệch tự chuyển sang kỳ sau. Có in bảng kê.
 - **Phí tháng**: tạm tính trong tháng, ghi vào công nợ khi hết tháng, in bảng phí cho đối tác.
 - **Nhật ký** (quản trị xem): thao tác của nhân viên và đối tác.

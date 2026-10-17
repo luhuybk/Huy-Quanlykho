@@ -211,6 +211,7 @@ tfoot td{font-weight:700;background:var(--head)}
 .tag-list{display:flex;flex-wrap:wrap;gap:8px}
 .tag{display:inline-flex;align-items:center;gap:4px;background:var(--line2);border-radius:999px;padding:5px 6px 5px 12px;font-weight:600;font-size:14px}
 .tag button{border:0;background:none;color:var(--ink3);cursor:pointer;padding:2px 4px;font-size:16px;line-height:1}
+.tag .tn{color:inherit;font:inherit;font-size:14px;padding:0;text-decoration:underline dotted var(--ink3);text-underline-offset:3px}
 .switch{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0}
 .switch input{width:46px;height:28px;appearance:none;-webkit-appearance:none;background:var(--line);border-radius:99px;position:relative;cursor:pointer;transition:.2s;flex:none}
 .switch input:checked{background:var(--pri)}
@@ -361,7 +362,7 @@ var S = {
   ton: { q: '', brand: '', kho: '', hideZero: true },
   bc: { range: 'month', from: '', to: '', kho: '', brand: '', active: true },
   cp: { range: 'year', loai: '', from: '', to: '' },
-  cd: { tab: 'sp', q: '' }
+  cd: { tab: 'sp', q: '', brand: '' }
 };
 function setData(d) {
   S.d = d;
@@ -883,7 +884,7 @@ function showCard(name, kho) {
       return '<tr data-act="phieu" data-v="' + esc(c.id) + '"><td>' + vn(c.date) + '</td><td><div>' + esc(c.loai) + (kho ? '' : ' · ' + esc(c.kho)) + '</div><div class="muted">' + esc([c.id, c.doiTuong].filter(String).join(' · ')) +
         '</div></td><td class="num ' + (c.delta < 0 ? 'neg' : 'pos') + '">' + esc(c.deltaText) + '</td><td class="num b' + (c.balance < 0 ? ' neg' : '') + '">' + esc(c.balanceText) + '</td></tr>';
     }).join('') + '</tbody></table></div>' : '<div class="empty">Chưa có giao dịch</div>';
-  openSheet(esc(name), body, canWrite() ? '<button class="btn out grow" data-act="quickPhieu" data-t="XUAT" data-v="' + esc(name) + '">' + ic('XUAT') + 'Xuất</button><button class="btn in grow" data-act="quickPhieu" data-t="NHAP" data-v="' + esc(name) + '">' + ic('NHAP') + 'Nhập</button>' : '', true);
+  openSheet(esc(name), body, (isAdmin() ? '<button class="btn sec2" data-act="prodForm" data-v="' + esc(name) + '">' + ic('edit') + 'Sửa</button>' : '') + (canWrite() ? '<button class="btn out grow" data-act="quickPhieu" data-t="XUAT" data-v="' + esc(name) + '">' + ic('XUAT') + 'Xuất</button><button class="btn in grow" data-act="quickPhieu" data-t="NHAP" data-v="' + esc(name) + '">' + ic('NHAP') + 'Nhập</button>' : ''), true);
 }
 
 /* ============================== TRANG: BÁO CÁO ============================== */
@@ -1295,11 +1296,17 @@ PAGES.caidat = function () {
 };
 var CD = { phi: cdPhi, data: cdData };
 CD.sp = function () {
-  var q = S.cd.q.toLowerCase();
-  var list = S.d.products.filter(function (p) { return !q || (p.name + ' ' + p.brand).toLowerCase().indexOf(q) >= 0; });
+  var q = S.cd.q.toLowerCase(), br = S.cd.brand, cnt = {};
+  S.d.products.forEach(function (p) { cnt[p.brand] = (cnt[p.brand] || 0) + 1; });
+  var brands = S.d.settings.brands.filter(function (b) { return cnt[b]; });
+  Object.keys(cnt).forEach(function (b) { if (brands.indexOf(b) < 0) brands.push(b); });
+  if (br && !cnt[br]) br = S.cd.brand = '';
+  var list = S.d.products.filter(function (p) { return (!br || p.brand === br) && (!q || (p.name + ' ' + p.brand).toLowerCase().indexOf(q) >= 0); });
   return '<div class="row"><div class="search grow"><span>' + ic('search') + '</span><input class="inp" placeholder="Tìm sản phẩm…" data-in="cdQ" value="' + esc(S.cd.q) + '"></div>' +
     '<button class="btn" data-act="prodForm">' + ic('plus') + '<span>Thêm</span></button></div>' +
-    '<div class="muted" style="margin:10px 2px">' + S.d.products.length + ' sản phẩm · bấm vào để sửa tên, brand, quy cách thùng, đơn vị tính</div>' +
+    '<div style="margin-top:10px">' + chips([['', 'Mọi brand']].concat(brands.map(function (b) { return [b, b + ' · ' + cnt[b]]; })), br, 'cdBrand') + '</div>' +
+    '<div class="row muted" style="margin:10px 2px"><span class="grow">' + list.length + ' sản phẩm · bấm vào để sửa tên, brand, quy cách thùng, đơn vị tính</span>' +
+    (br ? '<button class="btn ghost sm" data-act="dmRename" data-k="brands" data-v="' + esc(br) + '">' + ic('edit') + 'Đổi tên brand</button>' : '') + '</div>' +
     '<div class="card list" style="padding:2px 14px">' + list.map(function (p) {
       return '<div class="li" data-act="prodForm" data-v="' + esc(p.name) + '"><div class="grow" style="min-width:0"><div class="b ellip">' + esc(p.name) + '</div><div class="muted">' + esc(p.brand) + ' · ' + p.per + ' ' + esc(p.unit) + '/thùng' + (p.note ? ' · ' + esc(p.note) : '') + '</div></div>' +
         (p.feeStore !== '' && p.feeStore != null || p.feeIn !== '' && p.feeIn != null || p.feeOut !== '' && p.feeOut != null ? '<span class="badge k-role">giá phí riêng</span>' : '') +
@@ -1331,13 +1338,34 @@ CD.dm = function () {
   S.dm = S.dm || { khos: s.khos.slice(), brands: s.brands.slice(), costTypes: s.costTypes.slice(), units: s.units.slice() };
   var block = function (key, title, hint) {
     return '<div class="card"><div class="b">' + title + '</div><div class="muted" style="margin-bottom:10px">' + hint + '</div><div class="tag-list">' +
-      S.dm[key].map(function (x, i) { return '<span class="tag">' + esc(x) + '<button data-act="dmDel" data-k="' + key + '" data-v="' + i + '">×</button></span>'; }).join('') +
+      S.dm[key].map(function (x, i) {
+        var saved = s[key].indexOf(x) >= 0;
+        return '<span class="tag">' + (saved ? '<button class="tn" data-act="dmRename" data-k="' + key + '" data-v="' + esc(x) + '" title="Đổi tên">' + esc(x) + '</button>' : esc(x)) +
+          '<button data-act="dmDel" data-k="' + key + '" data-v="' + i + '" title="Xóa">×</button></span>';
+      }).join('') +
       '</div><div class="row" style="margin-top:10px"><input class="inp" id="dm_' + key + '" placeholder="Thêm mới…"><button class="btn sec2" data-act="dmAdd" data-k="' + key + '">Thêm</button></div></div>';
   };
-  return block('khos', 'Kho', 'Kho đã có giao dịch thì không xóa được') + block('brands', 'Brand', 'Dùng để nhóm và lọc sản phẩm') +
+  return '<div class="muted" style="margin:0 2px 12px">Bấm vào tên để <b>đổi tên</b>: mọi sản phẩm, phiếu, chi phí đang dùng tên cũ được cập nhật theo.</div>' +
+    block('khos', 'Kho', 'Kho đã có giao dịch thì không xóa được') + block('brands', 'Brand', 'Dùng để nhóm và lọc sản phẩm. Brand đang có sản phẩm thì không xóa được') +
     block('costTypes', 'Loại chi phí', 'Dùng khi ghi chi phí (ship, bốc xếp…)') + block('units', 'Đơn vị tính', 'chai, cái, hộp… dùng khi hiển thị “3 thùng + 12 chai”') +
     '<button class="btn block" style="margin-top:14px" data-act="saveDm">' + ic('check') + 'Lưu danh mục</button>';
 };
+var DM_LABEL = { khos: 'kho', brands: 'brand', units: 'đơn vị tính', costTypes: 'loại chi phí' };
+function dmUses(key, name) {
+  if (key === 'brands') { var n = S.d.products.filter(function (p) { return p.brand === name; }).length; return n ? n + ' sản phẩm' : ''; }
+  if (key === 'units') { var u = S.d.products.filter(function (p) { return p.unit === name; }).length; return u ? u + ' sản phẩm' : ''; }
+  if (key === 'khos') { var k = {}; S.tx.forEach(function (t) { if (t.kho === name) k[t.id] = 1; }); k = Object.keys(k).length; return k ? k + ' phiếu' : ''; }
+  var c = S.costs.filter(function (x) { return x.loai === name; }).length, f = (S.d.settings.fee.fixed || []).some(function (x) { return x.loai === name; });
+  return [c ? c + ' khoản chi phí' : '', f ? 'phí cố định hằng tháng' : ''].filter(String).join(', ');
+}
+function dmRename(key, name) {
+  var uses = dmUses(key, name), merge = key !== 'khos';
+  var body = '<form id="dmF" onsubmit="return false"><label class="field"><span>Tên mới</span><input class="inp" name="to" value="' + esc(name) + '" autocomplete="off"></label></form>' +
+    '<div class="muted" style="margin-top:12px">' + (uses ? 'Đang dùng ở <b>' + esc(uses) + '</b>, tất cả sẽ đổi sang tên mới.' : 'Chưa có dữ liệu nào dùng tên này.') +
+    (merge ? ' Nếu nhập trùng một ' + DM_LABEL[key] + ' đã có, hai mục sẽ được <b>gộp</b> làm một.' : '') + '</div>';
+  openSheet('Đổi tên ' + DM_LABEL[key] + ' “' + esc(name) + '”', body, '<span class="grow"></span><button class="btn" data-act="dmRenameSave" data-k="' + key + '" data-v="' + esc(name) + '">' + ic('check') + 'Đổi tên</button>');
+  setTimeout(function () { var i = $('#dmF [name=to]'); if (i) { i.focus(); i.select(); } }, 50);
+}
 CD.log = function () {
   return '<div class="card" style="box-shadow:none;background:var(--pri-weak);margin-bottom:12px"><b>Nhật ký thao tác</b><div style="font-size:14px;margin-top:4px">Ghi lại đăng nhập, phiếu và chi phí do <b>nhân viên / đối tác</b> tạo. Thao tác của quản trị không được ghi.</div></div>' +
     '<div class="search"><span>' + ic('search') + '</span><input class="inp" placeholder="Tìm theo mã phiếu, sản phẩm…" data-in="logQ" value="' + esc(S.logQ || '') + '"></div>' +
@@ -1618,6 +1646,22 @@ var ACT = {
     $('#cdBody').innerHTML = CD.dm();
     var n = $('#dm_' + k); if (n) n.focus();
   },
+  dmRename: function (el) { dmRename(el.dataset.k, el.dataset.v); },
+  dmRenameSave: function (el) {
+    var k = el.dataset.k, from = el.dataset.v, to = $('#dmF [name=to]').value.trim();
+    if (!to) { toast('Chưa nhập tên mới', true); return; }
+    if (to === from) { closeSheet(); return; }
+    var go2 = function () {
+      busy(el, true);
+      api('renameItem', { kind: k, from: from, to: to }).then(function (r) {
+        closeSheet(); S.dm = null; if (k === 'brands' && S.cd.brand === from) S.cd.brand = to;
+        toast(r.merged ? 'Đã gộp “' + from + '” vào “' + to + '”' : 'Đã đổi tên thành “' + to + '”'); refresh();
+      }).catch(function (e) { busy(el, false); toast(errText(e), true); });
+    };
+    if (k !== 'khos' && S.d.settings[k].indexOf(to) >= 0) ask('Đã có ' + DM_LABEL[k] + ' “' + to + '”. Gộp “' + from + '” vào đó?', 'Gộp').then(function (ok) { if (ok) go2(); });
+    else go2();
+  },
+  cdBrand: function (el) { S.cd.brand = el.dataset.v; $('#cdBody').innerHTML = CD.sp(); },
   dmDel: function (el) { S.dm[el.dataset.k].splice(+el.dataset.v, 1); $('#cdBody').innerHTML = CD.dm(); },
   saveDm: function (el) { saveSettings({ khos: S.dm.khos, brands: S.dm.brands, costTypes: S.dm.costTypes, units: S.dm.units }, el); },
   saveGen: function (el) { var f = $('#genF'); saveSettings({ company: f.company.value, allowNegative: f.allowNegative.checked, viewerSeeCosts: f.viewerSeeCosts.checked }, el); },

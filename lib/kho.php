@@ -33,7 +33,7 @@ final class K
         'saveCost' => ['admin', 'nhanvien'],
         'deletePhieu' => ['admin'], 'deleteCost' => ['admin'],
         'saveProduct' => ['admin'], 'deleteProduct' => ['admin'],
-        'saveSettings' => ['admin'],
+        'saveSettings' => ['admin'], 'renameItem' => ['admin'],
         'listUsers' => ['admin'], 'saveUser' => ['admin'], 'deleteUser' => ['admin'],
         'listLog' => ['admin'], 'saveChot' => ['admin'], 'deleteChot' => ['admin'], 'postFees' => ['admin'],
         'importData' => ['admin'], 'backup' => ['admin'], 'restore' => ['admin'],
@@ -761,8 +761,37 @@ final class App
         $used = array_column($this->s->q('SELECT DISTINCT kho FROM ledger')->fetchAll(), 'kho');
         $removed = array_values(array_filter($this->s->settings()['khos'], function ($k) use ($s, $used) { return !in_array($k, $s['khos'], true) && in_array($k, $used, true); }));
         if ($removed) return self::err('Không xóa được kho đã có giao dịch: ' . implode(', ', $removed));
+        $usedBrands = array_count_values(array_column($this->s->products(), 'brand'));
+        $lostBrands = [];
+        foreach ($this->s->settings()['brands'] as $b) if (!in_array($b, $s['brands'], true) && !empty($usedBrands[$b])) $lostBrands[] = $b . ' (' . $usedBrands[$b] . ' sản phẩm)';
+        if ($lostBrands) return self::err('Không xóa được brand đang có sản phẩm: ' . implode(', ', $lostBrands) . '. Hãy đổi tên brand, hoặc chuyển các sản phẩm sang brand khác trước.');
         $this->s->saveSettings($s);
         return ['ok' => true];
+    }
+
+    /** Đổi tên kho / brand / đơn vị / loại chi phí, cập nhật mọi chỗ đang dùng tên cũ. Brand, đơn vị, loại phí đổi sang tên đã có = gộp. */
+    public function a_renameItem($user, $p)
+    {
+        $kind = k_str($p['kind'] ?? ''); $from = k_str($p['from'] ?? ''); $to = k_str($p['to'] ?? '');
+        $label = ['khos' => 'kho', 'brands' => 'brand', 'units' => 'đơn vị tính', 'costTypes' => 'loại chi phí'];
+        if (!isset($label[$kind])) return self::err('Danh mục không hợp lệ.');
+        $set = $this->s->settings(); $list = $set[$kind];
+        if (!in_array($from, $list, true)) return self::err('Không tìm thấy ' . $label[$kind] . ' "' . $from . '".');
+        if ($to === '') return self::err('Chưa nhập tên mới.');
+        if ($to === $from) return ['ok' => true, 'merged' => false];
+        $merge = in_array($to, $list, true);
+        if ($merge && $kind === 'khos') return self::err('Đã có kho "' . $to . '". Không gộp được 2 kho bằng cách đổi tên, hãy dùng phiếu chuyển kho.');
+        $set[$kind] = self::cleanList(array_map(function ($x) use ($from, $to) { return $x === $from ? $to : $x; }, $list));
+        if ($kind === 'khos') $this->s->q('UPDATE ledger SET kho = ? WHERE kho = ?', [$to, $from]);
+        if ($kind === 'brands') $this->s->q('UPDATE products SET brand = ? WHERE brand = ?', [$to, $from]);
+        if ($kind === 'units') $this->s->q('UPDATE products SET unit = ? WHERE unit = ?', [$to, $from]);
+        if ($kind === 'costTypes') {
+            $this->s->q('UPDATE costs SET loai = ? WHERE loai = ?', [$to, $from]);
+            foreach ($set['fee']['fixed'] as &$x) if ($x['loai'] === $from) $x['loai'] = $to;
+            unset($x);
+        }
+        $this->s->saveSettings($set);
+        return ['ok' => true, 'merged' => $merge];
     }
 
     public function a_listUsers($user, $p)
