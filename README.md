@@ -18,15 +18,17 @@ Miễn phí, không cần máy chủ, dùng tốt trên điện thoại.
 ## Cấu trúc
 | File | Vai trò |
 |---|---|
-| `Core.gs` | Lõi tính toán + phân quyền (dùng chung cho máy chủ và giao diện) |
-| `Code.gs` | Đọc/ghi Google Sheets, đăng nhập, menu, ghi phí tự động |
-| `Index.html` | Giao diện web |
+| `apps-script/Core.gs` | Lõi tính toán + phân quyền (dùng chung cho máy chủ và giao diện) |
+| `apps-script/Code.gs` | Đọc/ghi Google Sheets, đăng nhập, menu, ghi phí tự động |
+| `apps-script/Index.html` | Giao diện web |
+| `index.html` + `.htaccess` + `manifest.webmanifest` + `icon.svg` | Vỏ để mở app bằng tên miền riêng (Hostinger…) |
 | `HUONG-DAN.md` | Hướng dẫn cài đặt & sử dụng chi tiết |
 
 ## Cài đặt nhanh
 1. Mở Google Sheets → **Tiện ích mở rộng → Apps Script**.
-2. Tạo 3 file `Code`, `Core` (tập lệnh) và `Index` (HTML), dán nội dung tương ứng.
+2. Tạo 3 file `Code`, `Core` (tập lệnh) và `Index` (HTML), dán nội dung tương ứng trong thư mục `apps-script/`.
 3. Chạy hàm `chuyenDuLieuCu` (có dữ liệu mẫu cũ) hoặc `caiDat` (file mới) → tạo tài khoản quản trị.
 4. **Triển khai → Ứng dụng web**: Thực thi dưới dạng *Tôi*, Người có quyền truy cập *Bất kỳ ai*.
+5. (Tùy chọn) Dán URL `/exec` vào `APP_URL` trong `index.html`, rồi đưa lên hosting để mở bằng tên miền riêng.
 
 Xem đầy đủ trong [HUONG-DAN.md](HUONG-DAN.md).

@@ -5,9 +5,10 @@ Có link web mở được trên điện thoại và máy tính, đăng nhập b
 
 | File | Vai trò |
 |---|---|
-| `Core.gs` | Lõi tính toán: tồn kho, kiểm tra xuất vượt tồn, mã phiếu, báo cáo, **phân quyền** |
-| `Code.gs` | Đọc/ghi Google Sheets, đăng nhập, menu trong Sheets |
-| `Index.html` | Giao diện web (điện thoại + máy tính) |
+| `apps-script/Core.gs` | Lõi tính toán: tồn kho, kiểm tra xuất vượt tồn, mã phiếu, báo cáo, **phân quyền** |
+| `apps-script/Code.gs` | Đọc/ghi Google Sheets, đăng nhập, menu trong Sheets |
+| `apps-script/Index.html` | Giao diện web (điện thoại + máy tính) |
+| `index.html`, `.htaccess`, `manifest.webmanifest`, `icon.svg` | "Vỏ" để mở ứng dụng bằng **tên miền riêng** (Hostinger…), xem mục 6 |
 
 ## Phân quyền
 
@@ -33,9 +34,9 @@ Nhân viên và đối tác **không cần quyền truy cập file Google Sheets
 
 ### 2. Dán code
 1. Trong bản sao: **Tiện ích mở rộng → Apps Script**.
-2. Xóa nội dung file `Mã.gs` có sẵn → dán toàn bộ **`Code.gs`** vào → đổi tên file thành `Code`.
-3. Bấm **＋ → Tập lệnh** → đặt tên `Core` → dán toàn bộ **`Core.gs`**.
-4. Bấm **＋ → HTML** → đặt tên đúng là `Index` → dán toàn bộ **`Index.html`**.
+2. Xóa nội dung file `Mã.gs` có sẵn → dán toàn bộ **`apps-script/Code.gs`** vào → đổi tên file thành `Code`.
+3. Bấm **＋ → Tập lệnh** → đặt tên `Core` → dán toàn bộ **`apps-script/Core.gs`**.
+4. Bấm **＋ → HTML** → đặt tên đúng là `Index` → dán toàn bộ **`apps-script/Index.html`**.
 5. Bấm 💾 **Lưu**.
 
 ### 3. Chuyển dữ liệu cũ + tạo tài khoản quản trị
@@ -63,8 +64,25 @@ Trong web: **Cài đặt → Tài khoản → ＋ Thêm**
 
 Gửi cho họ link web + tên đăng nhập + mật khẩu. Họ có thể tự đổi mật khẩu trong Cài đặt.
 
+### 6. Mở bằng tên miền riêng (Hostinger)
+Ứng dụng vẫn chạy trên Google (Sheets + Apps Script). Trang trên Hostinger chỉ là "vỏ" hiện app toàn màn hình dưới tên miền của bạn.
+
+1. Làm xong bước 4, copy **URL ứng dụng web** (dạng `https://script.google.com/macros/s/…/exec`).
+2. Mở file **`index.html`** ở thư mục gốc, tìm dòng:
+   ```
+   var APP_URL = '';
+   ```
+   dán link vào giữa hai dấu nháy, ví dụ `var APP_URL = 'https://script.google.com/macros/s/AKfy…/exec';`.
+   Sửa ngay trên GitHub (bấm ✏️) hoặc trong **Hostinger → Trình quản lý tệp**.
+3. Trên Hostinger, thư mục `public_html` chỉ cần **`index.html`, `.htaccess`, `manifest.webmanifest`, `icon.svg`**. Nếu deploy cả repo cũng được: `.htaccess` đã chặn không cho mở thư mục `apps-script/` và các file `.gs`, `.md` qua trình duyệt.
+4. Mở tên miền → thấy màn hình đăng nhập là xong. Trên điện thoại: **Thêm vào màn hình chính** để dùng như app.
+
+Lưu ý:
+- Khi cập nhật code, luôn dùng **Quản lý các bản triển khai → ✏️ → Phiên bản mới** để **giữ nguyên link**. Nếu tạo "Tùy chọn triển khai mới" thì link đổi và phải dán lại vào `index.html`.
+- Chưa dán link hoặc dán sai dạng, trang sẽ hiện hướng dẫn thay vì báo lỗi.
+
 ### Đã cài bản trước, giờ cập nhật bản mới
-1. Dán đè 3 file `Code`, `Core`, `Index` bằng bản mới → 💾 Lưu.
+1. Dán đè 3 file `Code`, `Core`, `Index` bằng bản mới trong thư mục `apps-script/` → 💾 Lưu.
 2. Chạy hàm **`caiDat`** 1 lần để tạo thêm sheet và cột mới (Chốt Sổ, Nhật Ký, cột giá phí riêng, các dòng biểu phí trong Cài Đặt). Dữ liệu cũ giữ nguyên. Google sẽ hỏi thêm quyền **chạy tác vụ tự động** (dùng cho việc tự ghi phí hằng tháng), bấm Cho phép.
 3. **Triển khai → Quản lý các bản triển khai → ✏️ → Phiên bản: Phiên bản mới → Triển khai**. Link web giữ nguyên.
 

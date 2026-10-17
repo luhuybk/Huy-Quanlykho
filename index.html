@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Quản lý kho</title>
+<meta name="theme-color" content="#f3f5f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1219" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kho">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<script>
+  /* =====================================================================
+   * LINK ỨNG DỤNG GOOGLE APPS SCRIPT
+   * Dán "URL ứng dụng web" (Apps Script → Triển khai → Quản lý các bản triển khai)
+   * vào giữa hai dấu nháy, dạng: https://script.google.com/macros/s/XXXXXXXX/exec
+   * ===================================================================== */
+  var APP_URL = '';
+</script>
+<style>
+  :root { --bg:#f3f5f9; --card:#fff; --ink:#172033; --mut:#5b6880; --pri:#2453d6; --line:#e3e8f0; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0d1219; --card:#151c27; --ink:#e6ebf2; --mut:#93a0b5; --pri:#6b93ff; --line:#273143; } }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--ink); font:15px/1.5 -apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
+  #app { position:fixed; inset:0; width:100%; height:100%; height:100dvh; border:0; display:block; background:var(--bg); }
+  .center { position:fixed; inset:0; display:grid; place-items:center; padding:24px; text-align:center; }
+  .logo { width:56px; height:56px; border-radius:16px; background:var(--pri); color:#fff; display:grid; place-items:center; margin:0 auto 14px; }
+  .spin { width:30px; height:30px; border:3px solid var(--line); border-top-color:var(--pri); border-radius:50%; animation:sp .8s linear infinite; margin:16px auto 0; }
+  @keyframes sp { to { transform:rotate(360deg); } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:22px; max-width:520px; text-align:left; }
+  .mut { color:var(--mut); font-size:14px; }
+  a { color:var(--pri); font-weight:600; }
+  code { background:var(--line); padding:1px 6px; border-radius:6px; font-size:13px; word-break:break-all; }
+  ol { padding-left:20px; margin:10px 0 0; } li { margin:6px 0; }
+  .hide { display:none !important; }
+</style>
+</head>
+<body>
+<div id="loading" class="center">
+  <div>
+    <div class="logo"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg></div>
+    <b>Đang mở ứng dụng kho…</b>
+    <div class="spin"></div>
+    <p id="slow" class="mut hide">Mạng hơi chậm? <a id="direct" href="#" target="_blank" rel="noopener">Mở trực tiếp</a></p>
+  </div>
+</div>
+
+<div id="setup" class="center hide">
+  <div class="card">
+    <div class="logo" style="margin:0 0 12px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg></div>
+    <b style="font-size:18px">Chưa gắn link ứng dụng</b>
+    <p class="mut" style="margin:6px 0 0">Trang này chỉ là “vỏ” hiển thị ứng dụng kho chạy trên Google Apps Script.</p>
+    <ol>
+      <li>Trong Apps Script: <b>Triển khai → Quản lý các bản triển khai</b> → copy <b>URL ứng dụng web</b> (đuôi <code>/exec</code>).</li>
+      <li>Mở file <code>index.html</code> (Hostinger → Trình quản lý tệp, hoặc trên GitHub) → dán link vào dòng <code>var APP_URL = '';</code></li>
+      <li>Lưu lại rồi tải lại trang này.</li>
+    </ol>
+    <p id="bad" class="hide" style="color:#d9483b;font-size:14px;margin-bottom:0">Link hiện tại không đúng dạng <code>https://script.google.com/macros/s/…/exec</code></p>
+  </div>
+</div>
+
+<iframe id="app" class="hide" title="Quản lý kho" allow="clipboard-write; fullscreen"></iframe>
+
+<script>
+(function () {
+  var url = String(APP_URL || '').trim();
+  var ok = /^https:\/\/script\.google\.com\/(macros|a\/macros\/[^/]+)\/s\/[\w-]+\/(exec|dev)$/.test(url);
+  if (!ok) {
+    document.getElementById('loading').classList.add('hide');
+    document.getElementById('setup').classList.remove('hide');
+    if (url) document.getElementById('bad').classList.remove('hide');
+    return;
+  }
+  var frame = document.getElementById('app');
+  document.getElementById('direct').href = url;
+  var slow = setTimeout(function () { document.getElementById('slow').classList.remove('hide'); }, 12000);
+  frame.addEventListener('load', function () {
+    clearTimeout(slow);
+    frame.classList.remove('hide');
+    document.getElementById('loading').classList.add('hide');
+  });
+  frame.src = url;
+})();
+</script>
+</body>
+</html>

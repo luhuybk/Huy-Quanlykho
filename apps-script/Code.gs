@@ -32,7 +32,8 @@ function doGet() {
   return t.evaluate()
     .setTitle(company)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
+    // cho phép nhúng vào trang khác (vd: tên miền riêng trên Hostinger)
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function login(u, password) {

@@ -1,0 +1,8 @@
+# Trang chủ là vỏ index.html (nhúng ứng dụng Google Apps Script)
+DirectoryIndex index.html
+Options -Indexes
+
+# Không cho xem mã nguồn Apps Script, tài liệu và file ẩn qua trình duyệt
+RedirectMatch 404 ^/apps-script(/.*)?$
+RedirectMatch 404 \.(gs|md|MD)$
+RedirectMatch 404 /\.(git|gitignore|htaccess)
