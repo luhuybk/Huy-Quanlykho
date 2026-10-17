@@ -381,6 +381,8 @@ function setData(d) {
   S.doiTuong = Object.keys(dt).sort();
 }
 function role() { return S.d.me.role; }
+// Tên vai trò hiện cho chính người dùng: đối tác chỉ thấy "Đối tác"
+function roleName(r) { return r === 'xem' ? 'Đối tác' : K.ROLES[r]; }
 function isAdmin() { return role() === 'admin'; }
 function hideDC() { return role() === 'xem'; }
 function canWrite() { return role() === 'admin' || role() === 'nhanvien'; }
@@ -408,7 +410,7 @@ function renderShell() {
     (canWrite() ? '<button class="newbtn" data-act="newPhieu" data-v="XUAT">' + ic('plus') + 'Tạo phiếu</button>' : '') +
     NAV.filter(navAllowed).map(function (n) { return '<button data-act="go" data-v="' + n[0] + '" data-nav="' + n[0] + '">' + ic(n[2]) + n[1] + '</button>'; }).join('') +
     '<div class="sp"></div><div class="row" style="padding:10px 12px"><div class="dot k-role">' + ic('user') + '</div><div class="grow"><div class="b ellip">' + esc(me.name) +
-    '</div><div class="muted">' + esc(K.ROLES[me.role]) + '</div></div><button class="ibtn" title="Đăng xuất" data-act="logout">' + ic('out') + '</button></div></nav>';
+    '</div><div class="muted">' + esc(roleName(me.role)) + '</div></div><button class="ibtn" title="Đăng xuất" data-act="logout">' + ic('out') + '</button></div></nav>';
   var mob = canWrite()
     ? [['home', 'Tổng quan', 'home'], ['lichsu', 'Lịch sử', 'list'], ['+'], ['ton', 'Tồn kho', 'box'], ['more', 'Thêm', 'more']]
     : [['home', 'Tổng quan', 'home'], ['lichsu', 'Lịch sử', 'list'], ['ton', 'Tồn kho', 'box'], ['baocao', 'Báo cáo', 'chart'], ['more', 'Thêm', 'more']];
@@ -543,7 +545,7 @@ PAGES.home = function () {
   var todayList = S.phieu.filter(function (p) { return p.date === t; });
 
   var h = '<div class="row wrap" style="margin-bottom:14px"><div class="grow"><div style="font-size:20px;font-weight:700">Xin chào, ' + esc(me.name) + '</div><div class="muted">' + dayLabel(t) + '</div></div>' +
-    '<span class="badge k-role">' + esc(K.ROLES[me.role]) + '</span></div>';
+    '<span class="badge k-role">' + esc(roleName(me.role)) + '</span></div>';
   h += '<div class="grid4">' +
     kpi('box', 'var(--pri-weak)', 'var(--pri)', 'Tồn kho', nf(cases, 1) + ' thùng', items + ' mặt hàng còn hàng') +
     kpi('XUAT', 'var(--out-weak)', 'var(--out)', 'Xuất tháng này', nf(xu.c, 1) + ' thùng', xu.n + ' phiếu') +
