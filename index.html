@@ -368,7 +368,8 @@ function setData(d) {
   S.pmap = K.productMap(d.products);
   S.tx = K.parseLedger(d.ledger, S.pmap);
   S.stock = K.computeStock(S.tx);
-  S.phieu = K.groupPhieu(S.tx);
+  // Đối tác không thấy phiếu điều chỉnh (kiểm kê, cân tồn); tồn kho vẫn tính đủ
+  S.phieu = K.groupPhieu(S.tx).filter(function (p) { return !hideDC() || p.kind !== 'DIEUCHINH'; });
   S.phieuById = {};
   S.phieu.forEach(function (p) { S.phieuById[p.id] = p; });
   S.costs = d.costs || [];
@@ -380,6 +381,7 @@ function setData(d) {
 }
 function role() { return S.d.me.role; }
 function isAdmin() { return role() === 'admin'; }
+function hideDC() { return role() === 'xem'; }
 function canWrite() { return role() === 'admin' || role() === 'nhanvien'; }
 function seeCost() { return !!S.d.costs; }
 function P(name) { return S.pmap[name] || { name: name, per: 1, unit: 'lẻ', brand: '' }; }
@@ -607,6 +609,7 @@ function phieuCard(p) {
 /* ============================== TRANG: LỊCH SỬ PHIẾU ============================== */
 PAGES.lichsu = function () {
   var f = S.hist, r = rangeOf(f.range, f.from, f.to), q = f.q.toLowerCase();
+  if (hideDC() && f.type === 'KHAC') f.type = '';
   var list = S.phieu.filter(function (p) {
     if (r.from && p.date < r.from) return false;
     if (r.to && p.date > r.to) return false;
@@ -621,7 +624,7 @@ PAGES.lichsu = function () {
   var h = '<div class="search"><span>' + ic('search') + '</span><input class="inp" placeholder="Tìm mã phiếu, sản phẩm, người nhận…" data-in="histQ" value="' + esc(f.q) + '"></div>' +
     '<div style="margin-top:10px">' + chips(RANGES, f.range, 'histRange') + '</div>' +
     (f.range === 'custom' ? '<div class="grid2" style="margin-top:8px"><input type="date" class="inp" data-in="histFrom" value="' + f.from + '"><input type="date" class="inp" data-in="histTo" value="' + f.to + '"></div>' : '') +
-    '<div class="row" style="margin-top:6px"><div class="grow">' + chips([['', 'Tất cả'], ['XUAT', 'Xuất'], ['NHAP', 'Nhập'], ['CHUYEN', 'Chuyển'], ['KHAC', 'Điều chỉnh']], f.type, 'histType') + '</div>' +
+    '<div class="row" style="margin-top:6px"><div class="grow">' + chips([['', 'Tất cả'], ['XUAT', 'Xuất'], ['NHAP', 'Nhập'], ['CHUYEN', 'Chuyển']].concat(hideDC() ? [] : [['KHAC', 'Điều chỉnh']]), f.type, 'histType') + '</div>' +
     (S.d.settings.khos.length > 1 ? '<select class="inp" style="width:auto;min-height:36px;padding:6px 30px 6px 10px;font-size:14px" data-in="histKho">' + opts(S.d.settings.khos, f.kho, 'Mọi kho') + '</select>' : '') + '</div>';
 
   if (!list.length) return h + '<div class="empty">Không có phiếu nào trong khoảng này</div>';
@@ -648,7 +651,7 @@ function dayView(d) {
     var g = groups[p.kind] || groups.KHAC;
     p.lines.forEach(function (l) { g[l.name] = K.round_((g[l.name] || 0) + (p.kind in groups ? l.units : l.signed)); });
   });
-  var lbl = { XUAT: 'Hàng xuất', NHAP: 'Hàng nhập', CHUYEN: 'Hàng chuyển kho', KHAC: 'Điều chỉnh / tồn đầu' };
+  var lbl = { XUAT: 'Hàng xuất', NHAP: 'Hàng nhập', CHUYEN: 'Hàng chuyển kho', KHAC: hideDC() ? 'Tồn đầu' : 'Điều chỉnh / tồn đầu' };
   var body = ps.length ? '' : '<div class="empty">Không có phiếu trong ngày</div>';
   Object.keys(groups).forEach(function (k) {
     var names = Object.keys(groups[k]);
@@ -870,6 +873,7 @@ PAGES.ton = function () {
 /* Thẻ kho 1 sản phẩm */
 function showCard(name, kho) {
   var p = P(name), card = K.buildCard(S.tx, name, kho || '').reverse();
+  if (hideDC()) card = card.filter(function (c) { return c.loai !== K.LOAI.DIEU_CHINH; });
   var body = '<div class="chips" style="margin-bottom:12px">' + S.d.settings.khos.map(function (k) {
     var v = stockOf(name, k); return '<span class="chip" style="cursor:default">' + esc(k) + ': <b class="' + (v < 0 ? 'neg' : '') + '">' + esc(fq(v, name)) + '</b></span>';
   }).join('') + '<span class="chip" style="cursor:default">' + p.per + ' ' + esc(p.unit) + '/thùng</span></div>' +
@@ -902,15 +906,15 @@ PAGES.baocao = function () {
     '<label class="row" style="gap:6px;font-size:14px;cursor:pointer"><input type="checkbox" data-in="bcActive"' + (f.active ? ' checked' : '') + '> Chỉ hàng có phát sinh</label></div>' +
     '<div class="muted" style="margin:10px 0">Kỳ: <b class="ink2">' + (r.from ? vn(r.from) : 'đầu sổ') + ' → ' + (r.to ? vn(r.to) : 'nay') + '</b> · đơn vị: thùng</div>';
   var T = { dau: 0, nhap: 0, xuat: 0, cd: 0, cuoi: 0 };
-  list.forEach(function (b) { T.dau += b.dau / b.per; T.nhap += b.nhap / b.per; T.xuat += b.xuat / b.per; T.cd += (b.chuyen + b.dc) / b.per; T.cuoi += b.cuoi / b.per; });
+  list.forEach(function (b) { T.dau += b.dau / b.per; T.nhap += b.nhap / b.per; T.xuat += b.xuat / b.per; T.cd += (b.chuyen + (hideDC() ? 0 : b.dc)) / b.per; T.cuoi += b.cuoi / b.per; });
   h += '<div class="grid4" style="margin-bottom:12px">' + kpi('layers', 'var(--line2)', 'var(--ink2)', 'Tồn đầu kỳ', nf(T.dau, 1), 'thùng') +
     kpi('NHAP', 'var(--in-weak)', 'var(--in)', 'Nhập', nf(T.nhap, 1), 'thùng') + kpi('XUAT', 'var(--out-weak)', 'var(--out)', 'Xuất', nf(T.xuat, 1), 'thùng') +
     kpi('box', 'var(--pri-weak)', 'var(--pri)', 'Tồn cuối kỳ', nf(T.cuoi, 1), 'thùng') + '</div>';
   var c = function (u, b) { var v = K.round_(u / b.per); return v ? nf(v) : '<span class="muted">–</span>'; };
-  h += list.length ? '<div class="tbl-wrap" id="rpt"><table><thead><tr><th class="stick">Sản phẩm</th><th class="num">Tồn đầu</th><th class="num">Nhập</th><th class="num">Xuất</th><th class="num">Chuyển/ĐC</th><th class="num">Tồn cuối</th><th>Quy đổi</th></tr></thead><tbody>' +
+  h += list.length ? '<div class="tbl-wrap" id="rpt"><table><thead><tr><th class="stick">Sản phẩm</th><th class="num">Tồn đầu</th><th class="num">Nhập</th><th class="num">Xuất</th><th class="num">' + (hideDC() ? 'Chuyển kho' : 'Chuyển/ĐC') + '</th><th class="num">Tồn cuối</th><th>Quy đổi</th></tr></thead><tbody>' +
     list.map(function (b) {
       return '<tr class="' + (b.cuoi < 0 ? 'warn' : '') + '" data-act="card" data-v="' + esc(b.name) + '"><td class="stick">' + esc(b.name) + '</td><td class="num">' + c(b.dau, b) + '</td><td class="num pos">' + c(b.nhap, b) + '</td><td class="num" style="color:var(--out)">' + c(b.xuat, b) +
-        '</td><td class="num">' + c(b.chuyen + b.dc, b) + '</td><td class="num b' + (b.cuoi < 0 ? ' neg' : '') + '">' + c(b.cuoi, b) + '</td><td class="muted" style="white-space:nowrap">' + esc(K.fmtThung(b.cuoi, b.per, b.unit)) + '</td></tr>';
+        '</td><td class="num">' + c(b.chuyen + (hideDC() ? 0 : b.dc), b) + '</td><td class="num b' + (b.cuoi < 0 ? ' neg' : '') + '">' + c(b.cuoi, b) + '</td><td class="muted" style="white-space:nowrap">' + esc(K.fmtThung(b.cuoi, b.per, b.unit)) + '</td></tr>';
     }).join('') + '</tbody><tfoot><tr><td class="stick">Tổng</td><td class="num">' + nf(T.dau) + '</td><td class="num">' + nf(T.nhap) + '</td><td class="num">' + nf(T.xuat) + '</td><td class="num">' + nf(T.cd) + '</td><td class="num">' + nf(T.cuoi) + '</td><td></td></tr></tfoot></table></div>'
     : '<div class="empty">Không có dữ liệu</div>';
   if (seeCost()) {
@@ -1443,8 +1447,8 @@ function printCosts(title, sub, list, carry, paid) {
 function printReport() {
   var R = reportData(), f = S.bc;
   doPrint(printHead('BÁO CÁO NHẬP – XUẤT – TỒN', (R.r.from ? vn(R.r.from) : 'đầu sổ') + ' → ' + (R.r.to ? vn(R.r.to) : 'nay') + (f.kho ? ' — ' + esc(f.kho) : '') + ' (đơn vị: thùng)') +
-    '<table style="width:100%"><tr><th>Sản phẩm</th><th>Tồn đầu</th><th>Nhập</th><th>Xuất</th><th>Chuyển/ĐC</th><th>Tồn cuối</th><th>Quy đổi</th></tr>' +
-    R.list.map(function (b) { var c = function (u) { return nf(u / b.per); }; return '<tr><td>' + esc(b.name) + '</td><td>' + c(b.dau) + '</td><td>' + c(b.nhap) + '</td><td>' + c(b.xuat) + '</td><td>' + c(b.chuyen + b.dc) + '</td><td><b>' + c(b.cuoi) + '</b></td><td>' + esc(K.fmtThung(b.cuoi, b.per, b.unit)) + '</td></tr>'; }).join('') + '</table>');
+    '<table style="width:100%"><tr><th>Sản phẩm</th><th>Tồn đầu</th><th>Nhập</th><th>Xuất</th><th>' + (hideDC() ? 'Chuyển kho' : 'Chuyển/ĐC') + '</th><th>Tồn cuối</th><th>Quy đổi</th></tr>' +
+    R.list.map(function (b) { var c = function (u) { return nf(u / b.per); }; return '<tr><td>' + esc(b.name) + '</td><td>' + c(b.dau) + '</td><td>' + c(b.nhap) + '</td><td>' + c(b.xuat) + '</td><td>' + c(b.chuyen + (hideDC() ? 0 : b.dc)) + '</td><td><b>' + c(b.cuoi) + '</b></td><td>' + esc(K.fmtThung(b.cuoi, b.per, b.unit)) + '</td></tr>'; }).join('') + '</table>');
 }
 
 /* ============================== SỰ KIỆN ============================== */
